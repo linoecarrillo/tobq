@@ -8,92 +8,84 @@ import (
     "encoding/xml"
 )
 
-func getLatestReport(url string) []byte {
+type CurrentSeason struct {
+    StartDate string `xml:"startDate,attr"`
+    EndDate string `xml:"endDate,attr"`
+}
+type BeachMeta struct {
+    Id string `xml:"id,attr"`
+    Name string `xml:"name,attr"`
+    //Lat string `xml:"lat,attr"`
+    //Long string `xml:"long,attr"`
+}
+type Header struct {
+    CurrentSeason CurrentSeason `xml:"currentSeason"`
+    BeachMeta []BeachMeta `xml:"beachMeta"`
+}
+type BeachData struct {
+    BeachId string `xml:"beachId,attr"`
+    SampleDate string `xml:"sampleDate"`
+    PublishDate string `xml:"publishDate"`
+    EColiCount string `xml:"eColiCount"`
+    //BeachAdvisory string `xml:"beachAdvisory"`
+    BeachStatus string `xml:"beachStatus"`
+}
+type Body struct {
+    BeachData []BeachData `xml:"beachData"`
+}
+type Report struct {
+    //XMLName xml.Name `xml:"tpha"`
+    Ver string `xml:"ver,attr"`
+    Header Header `xml:"header"`
+    Body Body `xml:"body"`
+}
+
+func getLatestReport(url string) Report {
+
+    var r Report
+
     resp, err := http.Get(url)
     if err != nil {
 	log.Fatal(err)
-	return []byte{}
+	return r
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
         log.Fatal(fmt.Errorf("Status error: %v", resp.StatusCode))
-	return []byte{}
+	return r
     }
 
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
 	log.Fatal(err)
-	return []byte{}
+	return r
     }
-    return body
+
+    err = xml.Unmarshal([]byte(body), &r)
+    if err != nil {
+	log.Fatal(err)
+	return r
+    }
+
+    log.Println("url:", url)
+    log.Println("Ver:", r.Ver)
+    log.Printf("currentSeason: %#v", r.Header.CurrentSeason)
+    log.Printf("beachMeta: %#v", r.Header.BeachMeta)
+    log.Printf("beachData: %#v", r.Body.BeachData)
+
+    return r
 }
 
-func getLatestReportAllBeaches() []byte {
+func getLatestReportAllBeaches() Report {
     return getLatestReport("http://app.toronto.ca/tpha/ws/beaches.xml?v=1.0")
 }
 
-func getLatestReportSpecificBeach(id int) []byte {
+func getLatestReportSpecificBeach(id int) Report {
     return getLatestReport(fmt.Sprintf("http://app.toronto.ca/tpha/ws/beach/%d.xml?v=1.0", id))
 }
 
 func main() {
-    type CurrentSeason struct {
-	StartDate string `xml:"startDate,attr"`
-	EndDate string `xml:"endDate,attr"`
-    }
-    type BeachMeta struct {
-	Id string `xml:"id,attr"`
-	Name string `xml:"name,attr"`
-	//Lat string `xml:"lat,attr"`
-	//Long string `xml:"long,attr"`
-    }
-    type Header struct {
-	CurrentSeason CurrentSeason `xml:"currentSeason"`
-	BeachMeta []BeachMeta `xml:"beachMeta"`
-    }
-    type BeachData struct {
-	BeachId string `xml:"beachId,attr"`
-	SampleDate string `xml:"sampleDate"`
-	PublishDate string `xml:"publishDate"`
-	EColiCount string `xml:"eColiCount"`
-	//BeachAdvisory string `xml:"beachAdvisory"`
-	BeachStatus string `xml:"beachStatus"`
-    }
-    type Body struct {
-        BeachData []BeachData `xml:"beachData"`
-    }
-    type Result struct {
-        //XMLName xml.Name `xml:"tpha"`
-	Ver string `xml:"ver,attr"`
-	Header Header `xml:"header"`
-	Body Body `xml:"body"`
-    }
-
-    bid := 10
-    var v1 Result
-    data := getLatestReportSpecificBeach(bid)
-    err := xml.Unmarshal([]byte(data), &v1)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    //fmt.Printf("XMLName: %#v\n", v1.XMLName)
-    log.Println("ver:", v1.Ver)
-    log.Printf("currentSeason: %#v", v1.Header.CurrentSeason)
-    log.Printf("beachMeta: %#v", v1.Header.BeachMeta)
-    log.Printf("beachData: %#v", v1.Body.BeachData)
-
-    var v2 Result
-    data = getLatestReportAllBeaches()
-    err = xml.Unmarshal([]byte(data), &v2)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    //fmt.Printf("XMLName: %#v\n", v2.XMLName)
-    log.Println("ver:", v2.Ver)
-    log.Printf("currentSeason: %#v", v2.Header.CurrentSeason)
-    log.Printf("header: %#v", v2.Header)
-    log.Printf("body: %#v", v2.Body)
+    _ = getLatestReportSpecificBeach(5)
+    _ = getLatestReportAllBeaches()
 }
