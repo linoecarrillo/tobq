@@ -1,4 +1,4 @@
-package main
+package tobq
 
 import (
     "fmt"
@@ -40,32 +40,28 @@ type Report struct {
     Body Body `xml:"body"`
 }
 
-func getLatestReport(url string) Report {
+func getLatestReport(url string) (Report, error) {
 
     var r Report
 
     resp, err := http.Get(url)
     if err != nil {
-	log.Fatal(err)
-	return r
+	return r, err
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        log.Fatal(fmt.Errorf("Status error: %v", resp.StatusCode))
-	return r
+	return r, fmt.Errorf("Status error: %v", resp.StatusCode)
     }
 
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-	log.Fatal(err)
-	return r
+	return r, err
     }
 
     err = xml.Unmarshal([]byte(body), &r)
     if err != nil {
-	log.Fatal(err)
-	return r
+	return r, err
     }
 
     log.Println("url:", url)
@@ -74,18 +70,13 @@ func getLatestReport(url string) Report {
     log.Printf("beachMeta: %#v", r.Header.BeachMeta)
     log.Printf("beachData: %#v", r.Body.BeachData)
 
-    return r
+    return r, nil
 }
 
-func getLatestReportAllBeaches() Report {
+func getLatestReportAllBeaches() (Report, error) {
     return getLatestReport("http://app.toronto.ca/tpha/ws/beaches.xml?v=1.0")
 }
 
-func getLatestReportSpecificBeach(id int) Report {
+func getLatestReportSpecificBeach(id int) (Report, error) {
     return getLatestReport(fmt.Sprintf("http://app.toronto.ca/tpha/ws/beach/%d.xml?v=1.0", id))
-}
-
-func main() {
-    _ = getLatestReportSpecificBeach(5)
-    _ = getLatestReportAllBeaches()
 }
