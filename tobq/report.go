@@ -6,6 +6,7 @@ import (
     "net/http"
     "io/ioutil"
     "encoding/xml"
+    "encoding/json"
 )
 
 type CurrentSeason struct {
@@ -84,12 +85,19 @@ func getLatestReportSpecificBeach(id int) (Report, error) {
 func ReportHandler(w http.ResponseWriter, r *http.Request) {
     switch r.Method {
     case "GET":
-	report, err := getLatestReportSpecificBeach(5)
+	report, err := getLatestReportAllBeaches()
+	if err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+	    w.Write([]byte(http.StatusText(http.StatusInternalServerError) + "\n"))
+	}
+
+	js, err := json.Marshal(report.Body.BeachData)
 	if err != nil {
             w.WriteHeader(http.StatusInternalServerError)
 	    w.Write([]byte(http.StatusText(http.StatusInternalServerError) + "\n"))
 	} else {
-            w.Write([]byte(report.Body.BeachData[0].BeachStatus))
+	    w.Header().Set("Content-Type", "application/json")
+            w.Write(js)
         }
     default:
 	w.WriteHeader(http.StatusNotImplemented)
