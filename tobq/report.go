@@ -1,4 +1,4 @@
-package tobq
+package report
 
 import (
     "fmt"
@@ -79,4 +79,20 @@ func getLatestReportAllBeaches() (Report, error) {
 
 func getLatestReportSpecificBeach(id int) (Report, error) {
     return getLatestReport(fmt.Sprintf("http://app.toronto.ca/tpha/ws/beach/%d.xml?v=1.0", id))
+}
+
+func ReportHandler(w http.ResponseWriter, r *http.Request) {
+    switch r.Method {
+    case "GET":
+	report, err := getLatestReportSpecificBeach(5)
+	if err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+	    w.Write([]byte(http.StatusText(http.StatusInternalServerError) + "\n"))
+	} else {
+            w.Write([]byte(report.Body.BeachData[0].BeachStatus))
+        }
+    default:
+	w.WriteHeader(http.StatusNotImplemented)
+	w.Write([]byte(http.StatusText(http.StatusNotImplemented) + "\n"))
+    }
 }

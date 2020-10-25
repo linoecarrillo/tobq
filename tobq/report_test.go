@@ -1,4 +1,4 @@
-package tobq
+package report
 
 import (
     "testing"
